@@ -17,7 +17,7 @@ app.use(helmet({
 
 // Rate limiting
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
@@ -32,16 +32,30 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(express.json());
+// Use raw body parser for debugging
+app.use(express.raw({ type: 'application/json', limit: '10mb' }));
+
 app.use(cookieParser());
 
-// DEBUG: Test body parsing
+// DEBUG: Test raw body parsing
 app.post('/api/debug-body', (req, res) => {
   console.log('DEBUG - Headers:', req.headers);
-  console.log('DEBUG - Body:', req.body);
-  console.log('DEBUG - Body type:', typeof req.body);
+  console.log('DEBUG - Raw body:', req.body);
+  console.log('DEBUG - Raw body type:', typeof req.body);
+  console.log('DEBUG - Raw body length:', req.body?.length);
+  
+  let parsed = null;
+  if (req.body && req.body.length > 0) {
+    try {
+      parsed = JSON.parse(req.body.toString('utf8'));
+    } catch (e) {
+      console.log('DEBUG - Parse error:', e.message);
+    }
+  }
+  
   res.json({ 
-    received: req.body,
+    receivedRaw: req.body?.toString('utf8') || null,
+    parsed: parsed,
     hasBody: !!req.body,
     contentType: req.headers['content-type'],
     contentLength: req.headers['content-length']
