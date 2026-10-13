@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "todo-reminder-backend",
   "version": "1.0.0",
   "private": true,
@@ -12,6 +12,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.3",
+    "body-parser": "^2.3.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

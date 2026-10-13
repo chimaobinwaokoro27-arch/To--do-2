@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import bodyParser from 'body-parser';
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import { warnAboutMissingSecret } from './config/auth.js';
@@ -32,22 +33,9 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(express.json());
+// Use body-parser directly
+app.use(bodyParser.json({ limit: '10mb' }));
 app.use(cookieParser());
-
-// DEBUG: Test raw body parsing
-app.post('/api/debug-body', (req, res) => {
-  console.log('DEBUG - Headers:', req.headers);
-  console.log('DEBUG - Body:', req.body);
-  console.log('DEBUG - Body type:', typeof req.body);
-  
-  res.json({ 
-    received: req.body,
-    hasBody: !!req.body,
-    contentType: req.headers['content-type'],
-    contentLength: req.headers['content-length']
-  });
-});
 
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
