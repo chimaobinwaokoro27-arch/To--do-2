@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -18,15 +18,15 @@ app.use(helmet({
 // Rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 requests per windowMs
+  max: 20,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -34,6 +34,19 @@ const apiLimiter = rateLimit({
 
 app.use(express.json());
 app.use(cookieParser());
+
+// DEBUG: Test body parsing
+app.post('/api/debug-body', (req, res) => {
+  console.log('DEBUG - Headers:', req.headers);
+  console.log('DEBUG - Body:', req.body);
+  console.log('DEBUG - Body type:', typeof req.body);
+  res.json({ 
+    received: req.body,
+    hasBody: !!req.body,
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length']
+  });
+});
 
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
@@ -43,13 +56,11 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow tools without an Origin header (curl, Postman) and known origins.
       if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
       const error = new Error('Origin not allowed by CORS');
       error.status = 403;
       return callback(error);
     },
-    // Needed so the browser is allowed to send the login cookie.
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   })
@@ -57,7 +68,6 @@ app.use(
 
 warnAboutMissingSecret();
 
-// Apply rate limiting
 app.use('/api/auth', authLimiter);
 app.use('/api/tasks', apiLimiter);
 
@@ -65,14 +75,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'todo-reminder-api' });
 });
 
-// Root route - welcome message
 app.get('/', (req, res) => {
   res.json({ status: 'success', message: 'API is running smoothly' });
 });
 
 app.use('/api/auth', authRoutes);
-
-// These routes check the login cookie themselves (see requireAuth).
 app.use('/api/tasks', taskRoutes);
 
 app.use((req, res) => {
