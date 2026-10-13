@@ -1,11 +1,36 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import { warnAboutMissingSecret } from './config/auth.js';
 
 const app = express();
+
+// Security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
+
+// Rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 app.use(express.json());
 app.use(cookieParser());
@@ -32,8 +57,17 @@ app.use(
 
 warnAboutMissingSecret();
 
+// Apply rate limiting
+app.use('/api/auth', authLimiter);
+app.use('/api/tasks', apiLimiter);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'todo-reminder-api' });
+});
+
+// Root route - welcome message
+app.get('/', (req, res) => {
+  res.json({ status: 'success', message: 'API is running smoothly' });
 });
 
 app.use('/api/auth', authRoutes);
