@@ -1,0 +1,51 @@
+# Render blueprint for the TaskFlow backend (Express + node-cron),
+# backed by a Supabase PostgreSQL database.
+#
+# How to use it: push this repo to GitHub, then in the Render dashboard choose
+# "New +" -> "Blueprint" and pick this repository. Render reads this file and
+# creates the service below.
+#
+# No persistent disk is needed: the database lives on Supabase (free tier),
+# which is exactly why this service can stay on Render's free plan.
+services:
+  - type: web
+    name: taskflow-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      # Node version and production mode.
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+
+      # Supabase PostgreSQL connection string (session-mode pooler). You will be
+      # asked for this value during the first deploy. Keep it secret.
+      - key: DATABASE_URL
+        sync: false
+
+      # The exact frontend origin allowed to call the API (your Vercel URL).
+      - key: CLIENT_URL
+        sync: false
+
+      # Render generates a strong random secret for the login cookie, so it is
+      # never written in this file or in Git.
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Gmail SMTP credentials. You will be asked for these during deploy.
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_APP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+
+      # Deadline/reminder calculations use the server's local timezone. Set this
+      # to your own timezone so reminders fire at the right local time.
+      - key: TZ
+        sync: false

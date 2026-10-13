@@ -1,0 +1,66 @@
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import authRoutes from './routes/authRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
+import { warnAboutMissingSecret } from './config/auth.js';
+
+const app = express();
+
+app.use(express.json());
+app.use(cookieParser());
+
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow tools without an Origin header (curl, Postman) and known origins.
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      const error = new Error('Origin not allowed by CORS');
+      error.status = 403;
+      return callback(error);
+    },
+    // Needed so the browser is allowed to send the login cookie.
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  })
+);
+
+warnAboutMissingSecret();
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'todo-reminder-api' });
+});
+
+app.use('/api/auth', authRoutes);
+
+// These routes check the login cookie themselves (see requireAuth).
+app.use('/api/tasks', taskRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+
+  const status = error.status || 500;
+  if (status >= 500) {
+    console.error('Server error:', error?.message || error);
+  }
+
+  const message =
+    error.type === 'entity.parse.failed'
+      ? 'Request body is not valid JSON'
+      : status >= 500
+        ? 'Something went wrong'
+        : error.message;
+
+  res.status(status).json({ error: message });
+});
+
+export default app;
