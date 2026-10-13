@@ -32,30 +32,17 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Use raw body parser for debugging
-app.use(express.raw({ type: 'application/json', limit: '10mb' }));
-
+app.use(express.json());
 app.use(cookieParser());
 
 // DEBUG: Test raw body parsing
 app.post('/api/debug-body', (req, res) => {
   console.log('DEBUG - Headers:', req.headers);
-  console.log('DEBUG - Raw body:', req.body);
-  console.log('DEBUG - Raw body type:', typeof req.body);
-  console.log('DEBUG - Raw body length:', req.body?.length);
-  
-  let parsed = null;
-  if (req.body && req.body.length > 0) {
-    try {
-      parsed = JSON.parse(req.body.toString('utf8'));
-    } catch (e) {
-      console.log('DEBUG - Parse error:', e.message);
-    }
-  }
+  console.log('DEBUG - Body:', req.body);
+  console.log('DEBUG - Body type:', typeof req.body);
   
   res.json({ 
-    receivedRaw: req.body?.toString('utf8') || null,
-    parsed: parsed,
+    received: req.body,
     hasBody: !!req.body,
     contentType: req.headers['content-type'],
     contentLength: req.headers['content-length']
